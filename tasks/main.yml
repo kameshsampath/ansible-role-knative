@@ -1,0 +1,31 @@
+---
+# - name: Check if domain suffix is defined
+#   fail:
+#    msg: "'apps_domain' is not defined"
+#   when: apps_domain is not defined
+
+- name: Check if 'KUBECONFIG' is set
+  fail:
+    msg: "'KUBECONFIG' is not defined"
+  when: ansible_env.KUBECONFIG is not defined
+
+###################################
+# Pre-req
+###################################
+- name: 'Check Pre-req'
+  include_tasks: pre_reqs.yml
+  when: not (undeploy_knative|bool)
+
+###################################
+# Install Knative
+###################################
+- name: 'Install Knative'
+  include_tasks: knative.yml
+  when: not (undeploy_knative|bool)
+
+###################################
+# Uninstall Knative
+###################################
+- name: 'Uninstall Knative'
+  include_tasks: undeploy.yml
+  when: undeploy_knative|bool

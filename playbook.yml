@@ -1,0 +1,24 @@
+---
+- name: Converge
+  hosts: localhost
+  connection: local
+
+  collections:
+    - community.kubernetes
+
+  vars:
+    ansible_python_interpreter: '{{ ansible_playbook_python }}'
+    # default values shown for clarity
+    deploy_knative: True
+    knative_version: v0.16.0
+    knative_eventing_version: v0.16.0
+    knative_serving_version: v0.16.0
+    kubectl_version: v1.18.2
+    oc_version: 4.5.2
+    okd_image: quay.io/openshift/okd:4.5.0-0.okd-2020-07-14-153706-ga
+    use_okd: True
+    #apps_domain is the apps domain suffix for Knative Services e.g. apps.gcp.kameshs.dev
+
+
+  roles:
+    - role: kameshsampath.knative

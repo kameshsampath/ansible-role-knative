@@ -1,0 +1,32 @@
+---
+- name: Verify
+  hosts: localhost
+  connection: local
+
+  collections:
+  - community.kubernetes
+    
+  vars:
+   ansible_python_interpreter: '{{ ansible_playbook_python }}'
+   deploy_knative: True
+   knative_version: v0.16.0
+   knative_eventing_version: v0.16.0
+   knative_serving_version: v0.16.0
+
+  tasks:
+
+   - import_tasks: ../common/tasks/verify.yml
+
+   - name: Create Test namespace
+     community.kubernetes.k8s:
+      definition:      
+        kind: Namespace
+        metadata:
+          name: molecule-knative-test
+      state: present
+
+   - import_tasks: serving_verify.yml
+   - import_tasks: eventing_verify.yml
+   
+- name: Destroy test resources
+  import_playbook: destroy.yml

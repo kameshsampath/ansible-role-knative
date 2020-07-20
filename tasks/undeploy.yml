@@ -1,0 +1,47 @@
+---
+- set_fact:
+    oc: "{{okd_bin_dir}}/oc"
+    kubectl: "{{okd_bin_dir}}/kubectl"
+  when: use_okd
+
+- set_fact:
+    oc: "{{ocp_bin_dir}}/oc"
+    kubectl: "{{ocp_bin_dir}}/kubectl"
+  when: not use_okd
+
+- set_fact:
+    knative_manifests_dir: "/tmp/knative/{{knative_version}}"
+
+- name: Make temp directory for Knative Manifests
+  file:
+    path: "{{knative_manifests_dir}}"
+    state: directory
+
+- name: Get Knative Manifests
+  get_url:
+      dest: "{{knative_manifests_dir}}" 
+      url: "{{item}}"
+  delegate_to: localhost
+  with_items:
+    - "https://github.com/knative/serving/releases/download/{{knative_serving_version}}/serving-crds.yaml"
+    - "https://github.com/knative/serving/releases/download/{{knative_serving_version}}/serving-core.yaml"
+    - "https://github.com/knative/eventing/releases/download/{{knative_eventing_version}}/eventing-crds.yaml"
+    - "https://github.com/knative/eventing/releases/download/{{knative_eventing_version}}/eventing.yaml"
+    - "https://github.com/knative/net-kourier/releases/download/{{knative_version}}/kourier.yaml"
+
+- name: UnDeploy Knative
+  community.kubernetes.k8s:
+    src: "{{item}}"
+    state: absent
+  with_fileglob:
+      - "{{knative_manifests_dir}}/serving-core.yaml"
+      - "{{knative_manifests_dir}}/kourier.yaml"
+      - "{{knative_manifests_dir}}/eventing.yaml"
+      - "{{knative_manifests_dir}}/serving-crds.yaml"
+      - "{{knative_manifests_dir}}/eventing-crds.yaml"
+  ignore_errors: True
+
+- name: Clear client archives
+  file:
+    path: "/tmp/openshift"
+    state: absent

@@ -1,0 +1,34 @@
+---
+- name: Get installed kubectl
+  stat:
+    path: "{{kubectl}}"
+  register: kubectl_result
+
+- name: Get installed oc
+  stat:
+    path: "{{oc}}"
+  register: oc_result
+
+- name: Get kubectl version
+  command:
+    argv:
+      - '{{kubectl_result.stat.path}}'
+      - version
+  register: kind_version_out
+  changed_when: False
+
+- name: Verify kubectl version
+  assert:
+    that: "{{ kubectl.stdout is regex('^Client ' + kubectl_version + '.*')}}" 
+
+- name: Get oc version
+  command:
+    argv:
+      - '{{oc_result.stat.path}}'
+      - version
+  register: oc_result_out
+  changed_when: False
+
+- name: Verify oc version
+  assert:
+    that: "{{ oc_result_out.stdout is regex('^Client ' + oc_version + '.*')}}" 

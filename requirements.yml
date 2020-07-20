@@ -1,0 +1,6 @@
+---
+roles:
+  - name: kameshsampath.kind
+collections:
+  - name: community.kubernetes
+    version: 0.11.1

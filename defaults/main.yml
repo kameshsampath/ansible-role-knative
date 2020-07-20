@@ -1,0 +1,12 @@
+---
+deploy_knative: True
+undeploy_knative: False
+knative_version: v0.16.0
+knative_eventing_version: v0.16.0
+knative_serving_version: v0.16.0
+kubectl_version: v1.18.2
+oc_version: 4.5.2
+okd_image: quay.io/openshift/okd:4.5.0-0.okd-2020-07-14-153706-ga
+use_okd: True
+ocp_bin_dir: "{{ansible_env.HOME}}/openshift/bin"
+okd_bin_dir: "{{ansible_env.HOME}}/openshift/okd/bin"

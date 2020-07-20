@@ -1,0 +1,99 @@
+---
+- name: Make sure destination exists
+  file:
+    path: "{{item}}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ocp_bin_dir}}"
+    - "{{okd_bin_dir}}"
+
+- name: Set Linux Downloadables
+  set_fact:
+    download_files:
+      - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux-{{oc_version}}.tar.gz"
+      - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-install-linux-{{oc_version}}.tar.gz"
+  when: ansible_os_family == "RedHat" or ansible_os_family == "CentOS" or ansible_os_family == "Debian"
+
+- name: Set macOS Downloadables
+  set_fact:
+    download_files:
+      - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-mac-{{oc_version}}.tar.gz"
+      - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-install-mac-{{oc_version}}.tar.gz"
+  when: ansible_os_family == "Darwin"
+
+- name: Set Windows Downloadables
+  set_fact:
+    download_files:
+      - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-windows-{{oc_version}}.zip"
+  when: ansible_os_family == "Windows"
+
+- name: Extract OKD tools
+  command:
+    argv: 
+      - "{{ansible_env.HOME}}/openshift/bin/oc"
+      - adm
+      - release
+      - extract 
+      - --tools
+      - --to=/tmp/openshift/okd
+      - "{{okd_image}}"
+
+- name: Dowload Clients
+  get_url:
+    url: "{{item}}"
+    dest: "/tmp/openshift"
+    checksum: "sha256:https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/sha256sum.txt"
+  loop: "{{download_files}}"
+
+- name: Extract Clients
+  unarchive:
+    src: "{{item}}"
+    dest: "{{ocp_bin_dir}}"
+    mode: 0755
+    exclude:
+      - "README.md"
+  with_fileglob: 
+    - "/tmp/openshift/*.gz"
+
+- name: Extract OKD Clients
+  unarchive:
+    src: "{{item}}"
+    dest: "{{okd_bin_dir}}"
+    mode: 0755
+    exclude:
+      - "README.md"
+  with_fileglob: 
+    - "/tmp/openshift/okd/*.gz"
+
+- name: Check OCP tools version
+  command:
+    argv: 
+      - "{{ocp_bin_dir}}/{{item}}"
+      - version
+  with_items:
+      - oc 
+      - openshift-install
+  when: not use_okd
+
+- name: Check OKD tools version
+  command:
+    argv: 
+      - "{{okd_bin_dir}}/{{item}}"
+      - version
+  with_items:
+      - oc 
+      - openshift-install
+  when: use_okd
+
+- set_fact:
+    oc: "{{okd_bin_dir}}/oc"
+    kubectl: "{{okd_bin_dir}}/kubectl"
+    openshift_install: "{{okd_bin_dir}}/openshift_install"
+  when: use_okd
+
+- set_fact:
+    oc: "{{ocp_bin_dir}}/oc"
+    kubectl: "{{ocp_bin_dir}}/kubectl"
+    openshift_install: "{{ocp_bin_dir}}/openshift_install"
+  when: not use_okd
