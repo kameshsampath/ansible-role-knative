@@ -1,15 +1,5 @@
 ---
 - set_fact:
-    oc: "{{okd_bin_dir}}/oc"
-    kubectl: "{{okd_bin_dir}}/kubectl"
-  when: use_okd
-
-- set_fact:
-    oc: "{{ocp_bin_dir}}/oc"
-    kubectl: "{{ocp_bin_dir}}/kubectl"
-  when: not use_okd
-
-- set_fact:
     knative_manifests_dir: "/tmp/knative/{{knative_version}}"
 
 - name: Make temp directory for Knative Manifests

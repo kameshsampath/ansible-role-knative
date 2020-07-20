@@ -27,6 +27,7 @@ Role Variables
 
 | Variable Name| Description | Default |
 |--|--|--|
+| skip_prereqs| Skip pre-requistes like download kubectl, oc etc., | False |
 | deploy_knative | Deploy Knative | True |
 | knative_version | The Knative version | v0.16.0 |
 | knative_serving_version | The Knative Serving version | v0.16.0 |

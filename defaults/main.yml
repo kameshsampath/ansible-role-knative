@@ -10,3 +10,4 @@ okd_image: quay.io/openshift/okd:4.5.0-0.okd-2020-07-14-153706-ga
 use_okd: True
 ocp_bin_dir: "{{ansible_env.HOME}}/openshift/bin"
 okd_bin_dir: "{{ansible_env.HOME}}/openshift/okd/bin"
+skip_prereqs: False

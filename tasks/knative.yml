@@ -21,39 +21,34 @@
 
 - name: Deploy Knative Serving
   community.kubernetes.k8s:
-    definition: "{{ item.manifest | from_yaml_all | list }}"
+    src: "{{ item }}"
     state: present
-  loop:
-      - name: serving-crds.yaml
-        manifest: "{{ lookup('file',knative_manifests_dir + '/serving-crds.yaml')}}"
-      - name: serving-core.yaml
-        manifest: "{{ lookup('file',knative_manifests_dir + '/serving-core.yaml')}}"
-  loop_control:
-      label: "{{item.name}}"
-  # TODO: #3 Check why controllers are configured always and fix it
+  with_fileglob:
+      - "{{knative_manifests_dir}}/serving-crds.yaml"
+      - "{{knative_manifests_dir}}/serving-core.yaml"
   changed_when: False
   register: knative_serving_deploy  
 
-- name: "Wait for Knative Serving::activator"
+- name: "Wait for Knative Serving::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
     deployment_name: activator
     deployment_namespace: knative-serving
 
-- name: "Wait for Knative Serving::autoscaler"
+- name: "Wait for Knative Serving::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
     deployment_name: autoscaler
     deployment_namespace: knative-serving
 
 
-- name: "Wait for Knative Serving::controller"
+- name: "Wait for Knative Serving::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
     deployment_name: controller
     deployment_namespace: knative-serving
 
-- name: "Wait for Knative Serving::webhook"
+- name: "Wait for Knative Serving::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
     deployment_name: webhook
@@ -61,79 +56,71 @@
 
 - name: Deploy Knative Eventing
   community.kubernetes.k8s:
-    definition: "{{ item.manifest | from_yaml_all | list }}"
-    state: present 
-  loop:
-      - name: eventing-crds.yaml
-        manifest: "{{ lookup('file',knative_manifests_dir + '/eventing-crds.yaml')}}"
-      - name: eventing.yaml
-        manifest: "{{ lookup('file',knative_manifests_dir + '/eventing.yaml')}}"
-  loop_control:
-      label: "{{item.name}}"
-  # TODO: #3 Check why controllers are configured always and fix it
+      src: "{{ item }}"
+      state: present
+  with_fileglob:
+      - "{{knative_manifests_dir}}/eventing-crds.yaml"
+      - "{{knative_manifests_dir}}/eventing.yaml"
   changed_when: False
   register: knative_eventing_deploy  
 
-- name: "Wait for Knative Eventing::eventing-controller"
+- name: "Wait for Knative Eventing::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
     deployment_name: eventing-controller
     deployment_namespace: knative-eventing
 
-- name: "Wait for Knative Eventing::eventing-webhook"
+- name: "Wait for Knative Eventing::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
     deployment_name: eventing-webhook
     deployment_namespace: knative-eventing
 
-- name: "Wait for Knative Eventing::imc-controller"
+- name: "Wait for Knative Eventing::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
     deployment_name: imc-controller
     deployment_namespace: knative-eventing
 
-- name: "Wait for Knative Eventing::imc-dispatcher"
+- name: "Wait for Knative Eventing::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
     deployment_name: imc-dispatcher
     deployment_namespace: knative-eventing
 
-- name: "Wait for Knative Eventing::mt-broker-controller"
+- name: "Wait for Knative Eventing::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
-    deployment_name: mt-broker-controller
+    deployment_name: "{{ 'mt-broker-controller' if knative_eventing_version is version('v0.16.0','>=') else 'broker-controller' }}"
     deployment_namespace: knative-eventing
 
-- name: "Wait for Knative Eventing::mt-broker-filter"
+- name: "Wait for Knative Eventing::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
-    deployment_name: mt-broker-filter
+    deployment_name: "{{ 'mt-broker-filter' if knative_eventing_version is version('v0.16.0','>=') else 'broker-filter' }}"
     deployment_namespace: knative-eventing
 
-- name: "Wait for Knative Eventing::mt-broker-ingress"
+- name: "Wait for Knative Eventing::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
-    deployment_name: mt-broker-ingress
+    deployment_name: "{{ 'mt-broker-ingress' if knative_eventing_version is version('v0.16.0','>=') else 'broker-ingress' }}"
     deployment_namespace: knative-eventing
 
 - name: Deploy Knative Serving Ingress
   community.kubernetes.k8s:
-    definition: "{{ item.manifest | from_yaml_all | list }}"
+    src: "{{ item }}"
     state: present
-  loop:
-      - name: kourier.yaml
-        manifest: "{{ lookup('file',knative_manifests_dir + '/kourier.yaml')}}"
-  loop_control:
-      label: "{{item.name}}"
+  with_fileglob:
+      - "{{knative_manifests_dir}}/kourier.yaml"
   register: knative_serving_ing_deploy  
 
-- name: "Wait for Knative Kourier::3scale-kourier-control"
+- name: "Wait for Knative Kourier::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
     deployment_name: 3scale-kourier-control
     deployment_namespace: kourier-system
 
-- name: "Wait for Knative Kourier::3scale-kourier-gateway"
+- name: "Wait for Knative Kourier::{{deployment_name}}"
   include_tasks: utils/k8s_deployment_status.yml
   vars:
     deployment_name: 3scale-kourier-gateway
@@ -152,6 +139,7 @@
         backend:
           serviceName: kourier
           servicePort: 80
+  when: not use_okd or use_okd
 
 # Make Knative Serving to use Kourier as Ingress
 - name: Configure Kourier as Knative Ingress
@@ -170,19 +158,19 @@
       data:
         ingress.class: "kourier.ingress.networking.knative.dev"
 
-- name: Configure Knative Serving domain 
-  community.kubernetes.k8s:
-    state: present
-    merge_type: 
-     - merge
-    definition:
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: config-domain
-        namespace: knative-serving       
-      data:
-        apps.gcp.kameshs.dev: ""
+# - name: Configure Knative Serving domain 
+#   community.kubernetes.k8s:
+#     state: present
+#     merge_type: 
+#      - merge
+#     definition:
+#       apiVersion: v1
+#       kind: ConfigMap
+#       metadata:
+#         name: config-domain
+#         namespace: knative-serving       
+#       data:
+#         apps.gcp.kameshs.dev: ""
 
 - name: Configure Knative Serving registriesSkippingTagResolving for openshift-registry
   community.kubernetes.k8s:
